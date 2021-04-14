@@ -15,6 +15,10 @@
 #include <string.h>
 #include "MinHashHeap.h"
 #include "ThreadPool.h"
+#include <list>
+#include "kseq.h"
+
+using namespace std;
 
 static const char * capnpHeader = "Cap'n Proto";
 static const int capnpHeaderLength = strlen(capnpHeader);
@@ -220,6 +224,8 @@ private:
     double kmerSpace;
     std::string file;
 };
+
+//void kmerStatistics(MinHashHeap & KmerStatsTable, list<int *> kseqs, Sketch::SketchInput * input, const Sketch::Parameters& parameters);
 
 void addMinHashes(MinHashHeap & minHashHeap, char * seq, uint64_t length, const Sketch::Parameters & parameters);
 void getMinHashPositions(std::vector<Sketch::PositionHash> & loci, char * seq, uint32_t length, const Sketch::Parameters & parameters, int verbosity = 0);

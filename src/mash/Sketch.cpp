@@ -1140,6 +1140,45 @@ void setMinHashesForReference(Sketch::Reference & reference, const MinHashHeap &
     hashList.sort();
 }
 
+void kmerStatistics(MinHashHeap & KmerStatsTable, list<kseq_t *> kseqs, Sketch::SketchInput * input, const Sketch::Parameters & parameters)
+{
+	list<kseq_t *>::iterator it = kseqs.begin();
+
+	while ( it!=kseqs.end() )
+	{
+		int seqlen = kseq_read(*it);
+		
+		if ( seqlen < -1 ) // error
+		{
+			break;
+		}
+		
+		if ( seqlen == -1 ) // eof
+		{
+			assert(true);
+		}
+		
+		if ( seqlen < parameters.kmerSize )
+		{
+			continue;
+		}
+		
+
+	      addMinHashes(KmerStatsTable, (*it)->seq.s, seqlen, parameters);
+
+		if ( parameters.reads && parameters.targetCov > 0 && KmerStatsTable.estimateMultiplicity() >= parameters.targetCov )
+		{
+			seqlen = -1; // success code
+			break;
+		}
+
+		it++;
+	}//end of while
+
+	return;
+
+}
+
 Sketch::SketchOutput * sketchFile(Sketch::SketchInput * input)
 {
 	const Sketch::Parameters & parameters = input->parameters;
@@ -1192,83 +1231,14 @@ Sketch::SketchOutput * sketchFile(Sketch::SketchInput * input)
 		
 		kseqs.push_back(kseq_init(fps[f]));
 	}
-	
-	list<kseq_t *>::iterator it = kseqs.begin();
-	
-	while ( kseqs.begin() != kseqs.end() )
-	{
-		l = kseq_read(*it);
+
+	MinHashHeap KmerStatsTable(parameters.use64, parameters.minHashesPerWindow, parameters.reads ? parameters.minCov : 1, parameters.memoryBound);
+
+	kmerStatistics(KmerStatsTable, kseqs, input, parameters);	
+
+	KmerStatsTable.computeStats();
 		
-		if ( l < -1 ) // error
-		{
-			break;
-		}
-		
-		if ( l == -1 ) // eof
-		{
-			kseq_destroy(*it);
-			it = kseqs.erase(it);
-			if ( it == kseqs.end() )
-			{
-				it = kseqs.begin();
-			}
-			continue;
-		}
-		
-		if ( l < parameters.kmerSize )
-		{
-			skipped = true;
-			continue;
-		}
-		
-		if ( count == 0 )
-		{
-			if ( input->fileNames[0] == "-" )
-			{
-				reference.name = (*it)->name.s;
-				reference.comment = (*it)->comment.s ? (*it)->comment.s : "";
-			}
-			else
-			{
-				reference.comment = (*it)->name.s;
-				reference.comment.append(" ");
-				reference.comment.append((*it)->comment.s ? (*it)->comment.s : "");
-			}
-		}
-		
-		count++;
-		
-		
-		//if ( verbosity > 0 && parameters.windowed ) cout << '>' << seq->name.s << " (" << l << "nt)" << endl << endl;
-		//if (seq->comment.l) printf("comment: %s\n", seq->comment.s);
-		//printf("seq: %s\n", seq->seq.s);
-		//if (seq->qual.l) printf("qual: %s\n", seq->qual.s);
-		
-		if ( ! parameters.reads )
-		{
-			reference.length += l;
-		}
-		
-		addMinHashes(minHashHeap, (*it)->seq.s, l, parameters);
-		//
-		//minHashHeap.computeStats();
-		//cout<<"--------------"<<endl;
-		//
-		
-		if ( parameters.reads && parameters.targetCov > 0 && minHashHeap.estimateMultiplicity() >= parameters.targetCov )
-		{
-			l = -1; // success code
-			break;
-		}
-		
-		it++;
-		
-		if ( it == kseqs.end() )
-		{
-			it = kseqs.begin();
-		}
-	}
-	
+/*	
 	if ( parameters.reads )
 	{
 		if ( parameters.genomeSize != 0 )
@@ -1331,7 +1301,9 @@ Sketch::SketchOutput * sketchFile(Sketch::SketchInput * input)
 	{
 		gzclose(fps[i]);
 	}
-	minHashHeap.computeStats();
+
+*/
+
 	return output;
 }
 
