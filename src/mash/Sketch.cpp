@@ -572,9 +572,7 @@ void addMinHashes(MinHashHeap & minHashHeap, char * seq, uint64_t length, const 
         
 		minHashHeap.tryInsert(hash);
     }
-   
-    minHashHeap.computeStats();
- 
+    
     if ( ! noncanonical )
     {
         delete [] seqRev;
@@ -1252,6 +1250,10 @@ Sketch::SketchOutput * sketchFile(Sketch::SketchInput * input)
 		}
 		
 		addMinHashes(minHashHeap, (*it)->seq.s, l, parameters);
+		//
+		//minHashHeap.computeStats();
+		//cout<<"--------------"<<endl;
+		//
 		
 		if ( parameters.reads && parameters.targetCov > 0 && minHashHeap.estimateMultiplicity() >= parameters.targetCov )
 		{
@@ -1329,7 +1331,7 @@ Sketch::SketchOutput * sketchFile(Sketch::SketchInput * input)
 	{
 		gzclose(fps[i]);
 	}
-	
+	minHashHeap.computeStats();
 	return output;
 }
 
