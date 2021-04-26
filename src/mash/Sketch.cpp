@@ -1143,36 +1143,16 @@ void setMinHashesForReference(Sketch::Reference & reference, const MinHashHeap &
 void kmerStatistics(MinHashHeap & KmerStatsTable, list<kseq_t *> kseqs, Sketch::SketchInput * input, const Sketch::Parameters & parameters)
 {
 	list<kseq_t *>::iterator it = kseqs.begin();
-
-	while ( it!=kseqs.end() )
+	int seqlen = kseq_read(*it);
+	while (seqlen > 0 )
 	{
-		int seqlen = kseq_read(*it);
-		
-		if ( seqlen < -1 ) // error
-		{
-			break;
-		}
-		
-		if ( seqlen == -1 ) // eof
-		{
-			assert(true);
-		}
-		
-		if ( seqlen < parameters.kmerSize )
-		{
-			continue;
-		}
-		
-
-	      addMinHashes(KmerStatsTable, (*it)->seq.s, seqlen, parameters);
-
-		if ( parameters.reads && parameters.targetCov > 0 && KmerStatsTable.estimateMultiplicity() >= parameters.targetCov )
-		{
-			seqlen = -1; // success code
-			break;
-		}
-
+		addMinHashes(KmerStatsTable, (*it)->seq.s, seqlen, parameters);
 		it++;
+		if(it == kseqs.end())
+		{
+			it = kseqs.begin();
+		}
+		seqlen = kseq_read(*it);
 	}//end of while
 
 	return;
