@@ -506,7 +506,51 @@ void Sketch::createIndex()
     kmerSpace = pow(parameters.alphabetSize, parameters.kmerSize);
 }
 
-void addMinHashes(MinHashHeap & minHashHeap, char * seq, uint64_t length, const Sketch::Parameters & parameters)
+void addMinHashes(MinHashHeap & minHashHeap, HashSet & kstatstable,char * seq, uint64_t length, const Sketch::Parameters & parameters)
+{
+    int kmerSize = parameters.kmerSize;
+    uint64_t mins = parameters.minHashesPerWindow;
+    bool noncanonical = parameters.noncanonical;
+
+    for ( uint64_t i = 0; i < length; i++ )
+    {
+        if ( ! parameters.preserveCase && seq[i] > 96 && seq[i] < 123 )
+        {
+            seq[i] -= 32;
+        }
+    }
+
+    char * seqRev;
+
+    if ( ! noncanonical )
+    {
+        seqRev = new char[length];
+        reverseComplement(seq, seqRev, length);
+    }
+
+    uint64_t j = 0;
+
+    for ( uint64_t i = 0; i < length - kmerSize + 1; i++ )
+    {
+
+	const char *kmer_fwd = seq + i;
+        const char *kmer_rev = seqRev + length - i - kmerSize;
+        const char * kmer = (noncanonical || memcmp(kmer_fwd, kmer_rev, kmerSize) <= 0) ? kmer_fwd : kmer_rev;
+        bool filter = false;
+
+        hash_u hash = getHash(kmer, kmerSize, parameters.seed, parameters.use64);
+
+        kstatstable.insert(hash, 1);
+    }
+
+    if ( ! noncanonical )
+    {
+        delete [] seqRev;
+    }
+
+}
+
+void addMinHashes(MinHashHeap & minHashHeap, MinHashHeap & kstattable,char * seq, uint64_t length, const Sketch::Parameters & parameters)
 {
     int kmerSize = parameters.kmerSize;
     uint64_t mins = parameters.minHashesPerWindow;
@@ -570,7 +614,7 @@ void addMinHashes(MinHashHeap & minHashHeap, char * seq, uint64_t length, const 
         
         hash_u hash = getHash(kmer, kmerSize, parameters.seed, parameters.use64);
         
-		minHashHeap.tryInsert(hash);
+	minHashHeap.tryInsert(hash, kstattabke);
     }
     
     if ( ! noncanonical )
@@ -1140,21 +1184,18 @@ void setMinHashesForReference(Sketch::Reference & reference, const MinHashHeap &
     hashList.sort();
 }
 
-void kmerStatistics(MinHashHeap & KmerStatsTable, list<kseq_t *> kseqs, Sketch::SketchInput * input, const Sketch::Parameters & parameters)
+void kmerStatistics(HashSet & KmerStatsTable, list<kseq_t *> kseqs, Sketch::SketchInput * input, const Sketch::Parameters & parameters)
 {
 	list<kseq_t *>::iterator it = kseqs.begin();
 	int seqlen = kseq_read(*it);
 	while (seqlen > 0 )
 	{
-		addMinHashes(KmerStatsTable, (*it)->seq.s, seqlen, parameters);
-		it++;
-		if(it == kseqs.end())
-		{
-			it = kseqs.begin();
-		}
+		addHashes(KmerStatsTable, (*it)->seq.s, seqlen, parameters);
 		seqlen = kseq_read(*it);
+		kseq_rewind(*it);
 	}//end of while
 
+	//kseq_destroy(*it);
 	return;
 
 }
@@ -1212,13 +1253,23 @@ Sketch::SketchOutput * sketchFile(Sketch::SketchInput * input)
 		kseqs.push_back(kseq_init(fps[f]));
 	}
 
-	MinHashHeap KmerStatsTable(parameters.use64, parameters.minHashesPerWindow, parameters.reads ? parameters.minCov : 1, parameters.memoryBound);
+	HashSet KmerStatsTable(parameters.use64);
+	kmerStatistics(KmerStatsTable, kseqs, input, parameters);
 
-	kmerStatistics(KmerStatsTable, kseqs, input, parameters);	
+	std::vector<int> counttable;
+	KmerStatsTable.toCounts(counttable);
 
-	KmerStatsTable.computeStats();
+	gzrewind(fps[0]);	
+	kseq_t *kt = kseq_init(fps[0]);
+
+	// push into minhash heap
+	int l;
+	while(l = kseq_read(kt) > 0)
+	{
+		addMinHashes(minHashHeap, KmerStatsTable, kt->seq.s, l, parameters);
+	}
 		
-/*	
+
 	if ( parameters.reads )
 	{
 		if ( parameters.genomeSize != 0 )
@@ -1282,7 +1333,7 @@ Sketch::SketchOutput * sketchFile(Sketch::SketchInput * input)
 		gzclose(fps[i]);
 	}
 
-*/
+
 
 	return output;
 }
