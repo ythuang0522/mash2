@@ -1,6 +1,7 @@
 
 #include "MinHashHeap.h"
 #include <iostream>
+#include "HashSet.h"
 
 using namespace::std;
 
@@ -82,6 +83,17 @@ void MinHashHeap::clear()
 	}
 	
 	multiplicitySum = 0;
+}
+
+void MinHashHeap::kmerInsertonce(hash_u hash,HashSet KmerStatsTable)
+{
+	cout <<"enter kmerInsertonce"<<endl;
+	cout << KmerStatsTable.count(hash)<<endl;
+	if(KmerStatsTable.count(hash) == 1)
+	{
+		hashes.insert(hash, 1);
+		hashesQueue.push(hash);
+	}
 }
 
 void MinHashHeap::tryInsert(hash_u hash)

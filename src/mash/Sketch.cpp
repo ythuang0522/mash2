@@ -506,7 +506,7 @@ void Sketch::createIndex()
     kmerSpace = pow(parameters.alphabetSize, parameters.kmerSize);
 }
 
-void addMinHashes(MinHashHeap & minHashHeap, HashSet & kstatstable,char * seq, uint64_t length, const Sketch::Parameters & parameters)
+void addHashes(HashSet & kstatstable,char * seq, uint64_t length, const Sketch::Parameters & parameters)
 {
     int kmerSize = parameters.kmerSize;
     uint64_t mins = parameters.minHashesPerWindow;
@@ -533,14 +533,15 @@ void addMinHashes(MinHashHeap & minHashHeap, HashSet & kstatstable,char * seq, u
     for ( uint64_t i = 0; i < length - kmerSize + 1; i++ )
     {
 
-	const char *kmer_fwd = seq + i;
+	    const char *kmer_fwd = seq + i;
         const char *kmer_rev = seqRev + length - i - kmerSize;
         const char * kmer = (noncanonical || memcmp(kmer_fwd, kmer_rev, kmerSize) <= 0) ? kmer_fwd : kmer_rev;
         bool filter = false;
 
         hash_u hash = getHash(kmer, kmerSize, parameters.seed, parameters.use64);
-
+        
         kstatstable.insert(hash, 1);
+        
     }
 
     if ( ! noncanonical )
@@ -550,7 +551,7 @@ void addMinHashes(MinHashHeap & minHashHeap, HashSet & kstatstable,char * seq, u
 
 }
 
-void addMinHashes(MinHashHeap & minHashHeap, MinHashHeap & kstattable,char * seq, uint64_t length, const Sketch::Parameters & parameters)
+void addMinHashes(HashSet KmerStatsTable,MinHashHeap & minHashHeap,char * seq, uint64_t length, const Sketch::Parameters & parameters)
 {
     int kmerSize = parameters.kmerSize;
     uint64_t mins = parameters.minHashesPerWindow;
@@ -613,8 +614,9 @@ void addMinHashes(MinHashHeap & minHashHeap, MinHashHeap & kstattable,char * seq
         bool filter = false;
         
         hash_u hash = getHash(kmer, kmerSize, parameters.seed, parameters.use64);
-        
-	minHashHeap.tryInsert(hash, kstattabke);
+        cout << "enter addminhash"<<endl;
+	    minHashHeap.kmerInsertonce(hash,KmerStatsTable);
+        cout <<KmerStatsTable.size();
     }
     
     if ( ! noncanonical )
@@ -1192,8 +1194,9 @@ void kmerStatistics(HashSet & KmerStatsTable, list<kseq_t *> kseqs, Sketch::Sket
 	{
 		addHashes(KmerStatsTable, (*it)->seq.s, seqlen, parameters);
 		seqlen = kseq_read(*it);
-		kseq_rewind(*it);
+		//kseq_rewind(*it);
 	}//end of while
+
 
 	//kseq_destroy(*it);
 	return;
@@ -1253,22 +1256,47 @@ Sketch::SketchOutput * sketchFile(Sketch::SketchInput * input)
 		kseqs.push_back(kseq_init(fps[f]));
 	}
 
+    // add hash directly
 	HashSet KmerStatsTable(parameters.use64);
 	kmerStatistics(KmerStatsTable, kseqs, input, parameters);
 
-	std::vector<int> counttable;
+    // print add hash result 
+    /*
+    std::vector<uint32_t> counttable;
+    HashList hashvalue;
 	KmerStatsTable.toCounts(counttable);
+    KmerStatsTable.toHashList(hashvalue);
+    for ( int i = 0; i < counttable.size(); i++ )
+    {
+        cout << hashvalue.at(i).hash64 << " ";
+        cout << counttable.at(i)<< endl;
+    }
+    */
 
+    // initialize file pointer
 	gzrewind(fps[0]);	
 	kseq_t *kt = kseq_init(fps[0]);
 
 	// push into minhash heap
-	int l;
+    
 	while(l = kseq_read(kt) > 0)
 	{
-		addMinHashes(minHashHeap, KmerStatsTable, kt->seq.s, l, parameters);
+        cout << "enter addminhash"<<endl;
+		addMinHashes(KmerStatsTable, minHashHeap, kt->seq.s, l, parameters);
 	}
-		
+    
+    /* test
+    list<kseq_t *>::iterator it = kseqs.begin();
+	int seqlen = kseq_read(*it);
+    
+    while(seqlen = kseq_read(kt) > 0)
+	{
+        addMinHashes(KmerStatsTable, minHashHeap, kt->seq.s, l, parameters);
+        seqlen = kseq_read(*it);
+	}
+    */
+    
+    minHashHeap.computeStats();
 
 	if ( parameters.reads )
 	{
@@ -1292,12 +1320,13 @@ Sketch::SketchOutput * sketchFile(Sketch::SketchInput * input)
 		//reference.comment.append(" more]");
 	}
 	
-	if (  l != -1 )
+	if (  l != 0 )
 	{
-		cerr << "\nERROR: reading " << (input->fileNames.size() > 0 ? "input files" : input->fileNames[0]) << "." << endl;
+		cerr << "\nERROR: reading " << (input->fileNames.size() > 0 ? "input files" : input->fileNames[0]) << "." << l << endl;
 		exit(1);
 	}
-	
+    
+	/*
 	if ( reference.length == 0 )
 	{
 		if ( skipped )
@@ -1311,6 +1340,7 @@ Sketch::SketchOutput * sketchFile(Sketch::SketchInput * input)
 		
 		exit(1);
 	}
+    */
 	
 	if ( ! parameters.windowed )
 	{
@@ -1332,7 +1362,7 @@ Sketch::SketchOutput * sketchFile(Sketch::SketchInput * input)
 	{
 		gzclose(fps[i]);
 	}
-
+    
 
 
 	return output;
@@ -1360,8 +1390,9 @@ Sketch::SketchOutput * sketchSequence(Sketch::SketchInput * input)
 	else
 	{
 	    MinHashHeap minHashHeap(parameters.use64, parameters.minHashesPerWindow, parameters.reads ? parameters.minCov : 1);
-        addMinHashes(minHashHeap, input->seq, input->length, parameters);
-		setMinHashesForReference(reference, minHashHeap);
+        //HashSet KmerStatsTable(parameters.use64);
+	    //addMinHashes(minHashHeap, input->seq, input->length, parameters);
+	    setMinHashesForReference(reference, minHashHeap);
 	}
 	
 	return output;
