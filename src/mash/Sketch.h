@@ -227,7 +227,7 @@ private:
 
 //void kmerStatistics(MinHashHeap & KmerStatsTable, list<int *> kseqs, Sketch::SketchInput * input, const Sketch::Parameters& parameters);
 
-void addMinHashes(MinHashHeap & minHashHeap,char * seq, uint64_t length, const Sketch::Parameters & parameters);
+void addMinHashes(HashSet& KmerStatsTable, MinHashHeap & minHashHeap,char * seq, uint64_t length, const Sketch::Parameters & parameters);
 void addHashes(HashSet & kstatstable,char * seq, uint64_t length, const Sketch::Parameters & parameters);
 void getMinHashPositions(std::vector<Sketch::PositionHash> & loci, char * seq, uint32_t length, const Sketch::Parameters & parameters, int verbosity = 0);
 bool hasSuffix(std::string const & whole, std::string const & suffix);

@@ -551,8 +551,9 @@ void addHashes(HashSet & kstatstable,char * seq, uint64_t length, const Sketch::
 
 }
 
-void addMinHashes(HashSet KmerStatsTable,MinHashHeap & minHashHeap,char * seq, uint64_t length, const Sketch::Parameters & parameters)
+void addMinHashes(HashSet& KmerStatsTable,MinHashHeap & minHashHeap,char * seq, uint64_t length, const Sketch::Parameters & parameters)
 {
+    cout << seq << "\n"; 
     int kmerSize = parameters.kmerSize;
     uint64_t mins = parameters.minHashesPerWindow;
     bool noncanonical = parameters.noncanonical;
@@ -584,9 +585,7 @@ void addMinHashes(HashSet KmerStatsTable,MinHashHeap & minHashHeap,char * seq, u
     for ( uint64_t i = 0; i < length - kmerSize + 1; i++ )
     {
 		// repeatedly skip kmers with bad characters
-		//
 		bool bad = false;
-		//
 		for ( ; j < i + kmerSize && i + kmerSize <= length; j++ )
 		{
 			if ( ! parameters.alphabet[seq[j]] )
@@ -601,10 +600,11 @@ void addMinHashes(HashSet KmerStatsTable,MinHashHeap & minHashHeap,char * seq, u
 		{
 			continue;
 		}
+
 		//	
 		if ( i + kmerSize > length )
 		{
-			// skipped to end
+			cout << i << ":" << kmerSize << ":" << length << "\n";
 			break;
 		}
             
@@ -614,9 +614,7 @@ void addMinHashes(HashSet KmerStatsTable,MinHashHeap & minHashHeap,char * seq, u
         bool filter = false;
         
         hash_u hash = getHash(kmer, kmerSize, parameters.seed, parameters.use64);
-        cout << "enter addminhash"<<endl;
 	    minHashHeap.kmerInsertonce(hash,KmerStatsTable);
-        cout <<KmerStatsTable.size();
     }
     
     if ( ! noncanonical )
@@ -1261,17 +1259,17 @@ Sketch::SketchOutput * sketchFile(Sketch::SketchInput * input)
 	kmerStatistics(KmerStatsTable, kseqs, input, parameters);
 
     // print add hash result 
-    /*
-    std::vector<uint32_t> counttable;
-    HashList hashvalue;
-	KmerStatsTable.toCounts(counttable);
-    KmerStatsTable.toHashList(hashvalue);
-    for ( int i = 0; i < counttable.size(); i++ )
-    {
-        cout << hashvalue.at(i).hash64 << " ";
-        cout << counttable.at(i)<< endl;
-    }
-    */
+    
+    // std::vector<uint32_t> counttable;
+    // HashList hashvalue;
+	// KmerStatsTable.toCounts(counttable);
+    // KmerStatsTable.toHashList(hashvalue);
+    // for ( int i = 0; i < counttable.size(); i++ )
+    // {
+    //     cout << hashvalue.at(i).hash64 << " ";
+    //     cout << counttable.at(i)<< endl;
+    // }
+    
 
     // initialize file pointer
 	gzrewind(fps[0]);	
@@ -1279,9 +1277,8 @@ Sketch::SketchOutput * sketchFile(Sketch::SketchInput * input)
 
 	// push into minhash heap
     
-	while(l = kseq_read(kt) > 0)
+	while( (l = kseq_read(kt)) > 0)
 	{
-        cout << "enter addminhash"<<endl;
 		addMinHashes(KmerStatsTable, minHashHeap, kt->seq.s, l, parameters);
 	}
     
@@ -1320,7 +1317,7 @@ Sketch::SketchOutput * sketchFile(Sketch::SketchInput * input)
 		//reference.comment.append(" more]");
 	}
 	
-	if (  l != 0 )
+	if (  l != -1 )
 	{
 		cerr << "\nERROR: reading " << (input->fileNames.size() > 0 ? "input files" : input->fileNames[0]) << "." << l << endl;
 		exit(1);

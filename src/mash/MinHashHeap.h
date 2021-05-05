@@ -20,7 +20,7 @@ public:
 	void toCounts(std::vector<uint32_t> & counts) const;
     void toHashList(HashList & hashList) const;
 	void tryInsert(hash_u hash);
-	void kmerInsertonce(hash_u hash ,HashSet KmerStatsTable);
+	void kmerInsertonce(hash_u hash ,HashSet & KmerStatsTable);
 
 private:
 

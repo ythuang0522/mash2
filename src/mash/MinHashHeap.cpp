@@ -85,15 +85,18 @@ void MinHashHeap::clear()
 	multiplicitySum = 0;
 }
 
-void MinHashHeap::kmerInsertonce(hash_u hash,HashSet KmerStatsTable)
+void MinHashHeap::kmerInsertonce(hash_u hash,HashSet & KmerStatsTable)
 {
-	cout <<"enter kmerInsertonce"<<endl;
-	cout << KmerStatsTable.count(hash)<<endl;
+	// cout << KmerStatsTable.count(hash)<<endl;
 	if(KmerStatsTable.count(hash) == 1)
 	{
 		hashes.insert(hash, 1);
 		hashesQueue.push(hash);
 	}
+	// else if(KmerStatsTable.count(hash) > 1)
+	// {
+	// 	cout << KmerStatsTable.count(hash) << "\n";
+	// }
 }
 
 void MinHashHeap::tryInsert(hash_u hash)
