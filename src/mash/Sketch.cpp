@@ -1260,15 +1260,15 @@ Sketch::SketchOutput * sketchFile(Sketch::SketchInput * input)
 
     // print add hash result 
     
-    // std::vector<uint32_t> counttable;
-    // HashList hashvalue;
-	// KmerStatsTable.toCounts(counttable);
-    // KmerStatsTable.toHashList(hashvalue);
-    // for ( int i = 0; i < counttable.size(); i++ )
-    // {
-    //     cout << hashvalue.at(i).hash64 << " ";
-    //     cout << counttable.at(i)<< endl;
-    // }
+    std::vector<uint32_t> counttable;
+    HashList hashvalue;
+	KmerStatsTable.toCounts(counttable);
+    KmerStatsTable.toHashList(hashvalue);
+    for ( int i = 0; i < counttable.size(); i++ )
+    {
+        cout << hashvalue.at(i).hash64 << " ";
+        cout << counttable.at(i)<< endl;
+    }
     
 
     // initialize file pointer

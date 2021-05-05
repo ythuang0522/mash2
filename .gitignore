@@ -30,3 +30,11 @@
 *.exe
 *.out
 *.app
+
+Makefile
+autom4te.cache/*
+config.log
+config.status
+configure
+mash
+
