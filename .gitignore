@@ -31,10 +31,10 @@
 *.out
 *.app
 
-Makefile
-autom4te.cache/*
-config.log
-config.status
-configure
-mash
+/Makefile
+/autom4te.cache/*
+/config.log
+/config.status
+/configure
+/mash
 

@@ -24,18 +24,19 @@ void HashPriorityQueue::clear()
     }
 }
 
-hash_u HashPriorityQueue::top() const
+std::pair<std::size_t, hash_u>  HashPriorityQueue::top() const
 {
     hash_u hash;
     
     if ( use64 )
     {
-        hash.hash64 = queue64.top();
+        // hash.hash64 = queue64.top().second;
+        hash.hash64 = queue64.top().second;
+        return std::make_pair(queue64.top().first, hash);
     }
     else
     {
-        hash.hash32 = queue32.top();
-    }
-    
-    return hash;
+        hash.hash32 = queue32.top().second;
+        return std::make_pair(queue32.top().first, hash);
+    }    
 }
