@@ -25,10 +25,11 @@
 #include <math.h>
 #include <list>
 #include <string.h>
+#include <fstream>
+#include <stdlib.h>
 
 #define SET_BINARY_MODE(file)
 #define CHUNK 16384
-KSEQ_INIT(gzFile, gzread)
 
 using namespace std;
 
@@ -102,6 +103,131 @@ void Sketch::initFromReads(const vector<string> & files, const Parameters & para
     createIndex();
 }
 
+int Sketch::initForMakeSketch(const vector<string> & files, const Parameters & parametersNew, int verbosity, bool enforceParameters, bool contain)
+{
+    parameters = parametersNew;
+    
+	ThreadPool<Sketch::SketchInput, Sketch::SketchOutput> threadPool(0, parameters.parallelism);
+	
+    // concatenate all files into a temp one
+    // collect kmer statistics from all files
+    char tmpname[] = "TmpFile-XXXXXX";
+    int fd = mkstemp(tmpname);
+    //std::ofstream of_c(tmpnam(nullptr), std::ios_base::binary);
+    std::ofstream of_c(tmpname, std::ios_base::binary);
+
+    for ( int i = 0; i < files.size(); i++ )
+    {
+        std::ifstream if_b(files[i], std::ios_base::binary);
+        of_c << if_b.rdbuf();
+        if_b.close();
+
+    }
+
+    of_c.close();
+    close(fd);
+
+	gzFile fps = gzopen(tmpname, "r");
+    list<kseq_t *> kseqs;
+
+	kseqs.push_back(kseq_init(fps));
+
+    // add hash directly
+	HashSet *KmerCountTable = new HashSet(parameters.use64);
+	kmerStatistics(*KmerCountTable, kseqs, parameters);
+
+    // print kmer count
+    std::vector<uint32_t> counttable;
+    HashList hashvalue;
+	KmerCountTable->toCounts(counttable);
+    KmerCountTable->toHashList(hashvalue);
+    for ( int i = 0; i < counttable.size(); i++ )
+    {
+        cout << hashvalue.at(i).hash64 << " ";
+        cout << counttable.at(i)<< endl;
+    }    
+
+    KmerTable = KmerCountTable;
+    // for ( int i = 0; i < files.size(); i++ )
+    // {
+	// 		FILE * inStream;
+		
+	// 		if ( files[i] == "-" )
+	// 		{
+	// 			if ( verbosity > 0 )
+	// 			{
+	// 				cerr << "Sketching from stdin..." << endl;
+	// 			}
+			
+	// 			inStream = stdin;
+	// 		}
+	// 		else
+	// 		{
+	// 			if ( verbosity > 0 )
+	// 			{
+	// 				cerr << "Sketching " << files[i] << "..." << endl;
+	// 			}
+			
+	// 			inStream = fopen(files[i].c_str(), "r");
+			
+	// 			if ( inStream == NULL )
+	// 			{
+	// 				cerr << "ERROR: could not open " << files[i] << " for reading." << endl;
+	// 				exit(1);
+	// 			}
+	// 		}
+		
+	// 		if ( parameters.concatenated )
+	// 		{
+	// 			if ( files[i] != "-" )
+	// 			{
+	// 				fclose(inStream);
+	// 			}
+				
+	// 			vector<string> file;
+	// 			file.push_back(files[i]);
+	// 			threadPool.runWhenThreadAvailable(new SketchInput(file, 0, 0, "", "", parameters), sketchFile);
+	// 		}
+	// 		else
+	// 		{
+	// 			if ( ! sketchFileBySequence(inStream, &threadPool) )
+	// 			{
+	// 				cerr << "\nERROR: reading " << files[i] << "." << endl;
+	// 				exit(1);
+	// 			}
+			
+	// 			fclose(inStream);
+	// 		}
+			
+	// 	while ( threadPool.outputAvailable() )
+	// 	{
+	// 		useThreadOutput(threadPool.popOutputWhenAvailable());
+	// 	}
+    // }
+    
+	// while ( threadPool.running() )
+	// {
+	// 	useThreadOutput(threadPool.popOutputWhenAvailable());
+	// }
+	
+    /*
+    printf("\nCombined hash table:\n\n");
+    
+    for ( LociByHash_umap::iterator i = lociByHash.begin(); i != lociByHash.end(); i++ )
+    {
+        printf("Hash %u:\n", i->first);
+        
+        for ( int j = 0; j < i->second.size(); j++ )
+        {
+            printf("   Seq: %d\tPos: %d\n", i->second.at(j).sequence, i->second.at(j).position);
+        }
+    }
+    */
+    
+    createIndex();
+    
+    return 0;
+}
 int Sketch::initFromFiles(const vector<string> & files, const Parameters & parametersNew, int verbosity, bool enforceParameters, bool contain)
 {
     parameters = parametersNew;
@@ -551,7 +677,7 @@ void addHashes(HashSet & kstatstable,char * seq, uint64_t length, const Sketch::
 
 }
 
-void addMinHashes(HashSet& KmerStatsTable,MinHashHeap & minHashHeap,char * seq, uint64_t length, const Sketch::Parameters & parameters)
+void Sketch::addMinHashes(HashSet& KmerStatsTable,MinHashHeap & minHashHeap,char * seq, uint64_t length, const Sketch::Parameters & parameters)
 {
     cout << seq << "\n"; 
     int kmerSize = parameters.kmerSize;
@@ -1184,7 +1310,7 @@ void setMinHashesForReference(Sketch::Reference & reference, const MinHashHeap &
     hashList.sort();
 }
 
-void kmerStatistics(HashSet & KmerStatsTable, list<kseq_t *> kseqs, Sketch::SketchInput * input, const Sketch::Parameters & parameters)
+void kmerStatistics(HashSet & KmerStatsTable, list<kseq_t *> kseqs, const Sketch::Parameters & parameters)
 {
 	list<kseq_t *>::iterator it = kseqs.begin();
 	int seqlen = kseq_read(*it);
@@ -1254,32 +1380,12 @@ Sketch::SketchOutput * sketchFile(Sketch::SketchInput * input)
 		kseqs.push_back(kseq_init(fps[f]));
 	}
 
-    // add hash directly
-	HashSet KmerStatsTable(parameters.use64);
-	kmerStatistics(KmerStatsTable, kseqs, input, parameters);
-
-    // print add hash result 
-    
-    std::vector<uint32_t> counttable;
-    HashList hashvalue;
-	KmerStatsTable.toCounts(counttable);
-    KmerStatsTable.toHashList(hashvalue);
-    for ( int i = 0; i < counttable.size(); i++ )
-    {
-        cout << hashvalue.at(i).hash64 << " ";
-        cout << counttable.at(i)<< endl;
-    }
-    
-
-    // initialize file pointer
-	gzrewind(fps[0]);	
-	kseq_t *kt = kseq_init(fps[0]);
+	//kseq_t *kt = kseq_init(fps[0]);
 
 	// push into minhash heap
-    
-	while( (l = kseq_read(kt)) > 0)
+	while( (l = kseq_read(kseqs.front())) > 0)
 	{
-		addMinHashes(KmerStatsTable, minHashHeap, kt->seq.s, l, parameters);
+		addMinHashes(KmerTable, minHashHeap, kseqs.front()->seq.s, l, parameters);
 	}
     
     /* test

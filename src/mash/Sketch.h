@@ -17,6 +17,7 @@
 #include "ThreadPool.h"
 #include <list>
 #include "kseq.h"
+#include <zlib.h>
 
 using namespace std;
 
@@ -201,6 +202,8 @@ public:
     bool hasHashCounts() const {return references.size() > 0 && references.at(0).counts.size() > 0;}
     bool hasLociByHash(hash_t hash) const {return lociByHash.count(hash);}
     int initFromFiles(const std::vector<std::string> & files, const Parameters & parametersNew, int verbosity = 0, bool enforceParameters = false, bool contain = false);
+    int initForMakeSketch(const std::vector<std::string> & files, const Parameters & parametersNew, int verbosity = 0, bool enforceParameters = false, bool contain = false);
+
     void initFromReads(const std::vector<std::string> & files, const Parameters & parametersNew);
     uint64_t initParametersFromCapnp(const char * file);
     void setReferenceName(int i, const std::string name) {references[i].name = name;}
@@ -210,7 +213,8 @@ public:
     void warnKmerSize(uint64_t lengthMax, const std::string & lengthMaxName, double randomChance, int kMin, int warningCount) const;
     bool writeToFile() const;
     int writeToCapnp(const char * file) const;
-    
+    void addMinHashes(HashSet& KmerStatsTable, MinHashHeap & minHashHeap,char * seq, uint64_t length, const Sketch::Parameters & parameters);
+
 private:
     
     void createIndex();
@@ -219,15 +223,16 @@ private:
     robin_hood::unordered_map<std::string, int> referenceIndecesById;
     std::vector<std::vector<PositionHash>> positionHashesByReference;
     robin_hood::unordered_map<hash_t, std::vector<Locus>> lociByHash;
-    
+    HashSet *KmerTable;
     Parameters parameters;
     double kmerSpace;
     std::string file;
 };
 
-//void kmerStatistics(MinHashHeap & KmerStatsTable, list<int *> kseqs, Sketch::SketchInput * input, const Sketch::Parameters& parameters);
+KSEQ_INIT(gzFile, gzread)
 
-void addMinHashes(HashSet& KmerStatsTable, MinHashHeap & minHashHeap,char * seq, uint64_t length, const Sketch::Parameters & parameters);
+void kmerStatistics(HashSet & KmerStatsTable, list<kseq_t *> kseqs, const Sketch::Parameters& parameters);
+
 void addHashes(HashSet & kstatstable,char * seq, uint64_t length, const Sketch::Parameters & parameters);
 void getMinHashPositions(std::vector<Sketch::PositionHash> & loci, char * seq, uint32_t length, const Sketch::Parameters & parameters, int verbosity = 0);
 bool hasSuffix(std::string const & whole, std::string const & suffix);

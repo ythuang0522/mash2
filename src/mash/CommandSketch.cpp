@@ -95,7 +95,7 @@ int CommandSketch::run() const
     }
     else
     {
-	    sketch.initFromFiles(files, parameters, verbosity);
+	    sketch.initForMakeSketch(files, parameters, verbosity);
 	}
 	
 	if ( getOption("id").active )
