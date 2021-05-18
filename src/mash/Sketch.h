@@ -18,6 +18,7 @@
 #include <list>
 #include "kseq.h"
 #include <zlib.h>
+#include "HashSet.h"
 
 using namespace std;
 
@@ -57,7 +58,8 @@ public:
             memoryBound(0),
             minCov(1),
             targetCov(0),
-            genomeSize(0)
+            genomeSize(0),
+            KmerStatsTable(new HashSet(false))
         {
         	memset(alphabet, 0, 256);
         }
@@ -81,7 +83,8 @@ public:
             memoryBound(other.memoryBound),
             minCov(other.minCov),
             targetCov(other.targetCov),
-            genomeSize(other.genomeSize)
+            genomeSize(other.genomeSize),
+            KmerStatsTable(other.KmerStatsTable)
 		{
 			memcpy(alphabet, other.alphabet, 256);
 		}
@@ -105,6 +108,8 @@ public:
         uint32_t minCov;
         double targetCov;
         uint64_t genomeSize;
+
+        HashSet* KmerStatsTable;
     };
     
     struct PositionHash
@@ -213,7 +218,7 @@ public:
     void warnKmerSize(uint64_t lengthMax, const std::string & lengthMaxName, double randomChance, int kMin, int warningCount) const;
     bool writeToFile() const;
     int writeToCapnp(const char * file) const;
-    void addMinHashes(HashSet& KmerStatsTable, MinHashHeap & minHashHeap,char * seq, uint64_t length, const Sketch::Parameters & parameters);
+    //void addMinHashes(HashSet& KmerStatsTable, MinHashHeap & minHashHeap,char * seq, uint64_t length, const Sketch::Parameters & parameters);
 
 private:
     
@@ -229,10 +234,11 @@ private:
     std::string file;
 };
 
-KSEQ_INIT(gzFile, gzread)
+//KSEQ_INIT(gzFile, gzread)
 
-void kmerStatistics(HashSet & KmerStatsTable, list<kseq_t *> kseqs, const Sketch::Parameters& parameters);
+//void kmerStatistics(HashSet & KmerStatsTable, list<kseq_t *> kseqs, const Sketch::Parameters& parameters);
 
+void addMinHashes(MinHashHeap & minHashHeap,char * seq, uint64_t length, const Sketch::Parameters & parameters);
 void addHashes(HashSet & kstatstable,char * seq, uint64_t length, const Sketch::Parameters & parameters);
 void getMinHashPositions(std::vector<Sketch::PositionHash> & loci, char * seq, uint32_t length, const Sketch::Parameters & parameters, int verbosity = 0);
 bool hasSuffix(std::string const & whole, std::string const & suffix);

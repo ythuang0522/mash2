@@ -24,6 +24,13 @@ public:
     void insert(hash_u hash, uint32_t count = 1);
     void toHashList(HashList & hashList) const;
     void toCounts(std::vector<uint32_t> & counts) const;
+    HashSet operator=(const HashSet& hs)
+    {
+        HashSet hash(hs.use64);
+        hash.hashes32 = hs.hashes32;
+        hash.hashes64 = hs.hashes64;
+        return hash;
+    }
     
 private:
     
