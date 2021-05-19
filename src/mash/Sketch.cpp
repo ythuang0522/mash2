@@ -155,15 +155,15 @@ int Sketch::initForMakeSketch(const vector<string> & files, const Parameters & p
 	kmerStatistics(*KmerCountTable, kseqs, parameters);
 
     // print kmer count
-    std::vector<uint32_t> counttable;
-    HashList hashvalue;
-	KmerCountTable->toCounts(counttable);
-    KmerCountTable->toHashList(hashvalue);
-    for ( int i = 0; i < counttable.size(); i++ )
-    {
-        cout << hashvalue.at(i).hash64 << " ";
-        cout << counttable.at(i)<< endl;
-    }    
+    // std::vector<uint32_t> counttable;
+    // HashList hashvalue;
+	// KmerCountTable->toCounts(counttable);
+    // KmerCountTable->toHashList(hashvalue);
+    // for ( int i = 0; i < counttable.size(); i++ )
+    // {
+    //     cout << hashvalue.at(i).hash64 << " ";
+    //     cout << counttable.at(i)<< endl;
+    // }    
 
     //KmerTable = KmerCountTable;
     parameters.KmerStatsTable = KmerCountTable;
@@ -700,7 +700,7 @@ void addHashes(HashSet & kstatstable,char * seq, uint64_t length, const Sketch::
 //void Sketch::addMinHashes(HashSet& KmerStatsTable,MinHashHeap & minHashHeap,char * seq, uint64_t length, const Sketch::Parameters & parameters)
 void addMinHashes(MinHashHeap & minHashHeap,char * seq, uint64_t length, const Sketch::Parameters & parameters)
 {
-    cout << seq << "\n"; 
+    //cout << seq << "\n"; 
     int kmerSize = parameters.kmerSize;
     uint64_t mins = parameters.minHashesPerWindow;
     bool noncanonical = parameters.noncanonical;
@@ -1385,13 +1385,32 @@ Sketch::SketchOutput * sketchFile(Sketch::SketchInput * input)
 		kseqs.push_back(kseq_init(fps[f]));
 	}
 
+    
+
 	//kseq_t *kt = kseq_init(fps[0]);
 
 	// push into minhash heap
-	while( (l = kseq_read(kseqs.front())) > 0)
+	/*while( (l = kseq_read(kseqs.front())) > 0)
 	{
 		addMinHashes(minHashHeap, kseqs.front()->seq.s, l, parameters);
-	}
+	}*/
+
+    list<kseq_t *>::iterator it = kseqs.begin();
+    while((l = kseq_read(*it)) > 0)
+    {
+        if (count == 0)
+        {
+            reference.comment = (*it)->name.s;
+	        reference.comment.append(" ");
+            reference.comment.append((*it)->comment.s ? (*it)->comment.s : "");
+        }
+        if ( ! parameters.reads )
+		{
+			reference.length += l;
+		}
+        addMinHashes(minHashHeap, kseqs.front()->seq.s, l, parameters);
+        count++;
+    }
     
     /* test
     list<kseq_t *>::iterator it = kseqs.begin();
@@ -1404,7 +1423,7 @@ Sketch::SketchOutput * sketchFile(Sketch::SketchInput * input)
 	}
     */
     
-    minHashHeap.computeStats();
+    //minHashHeap.computeStats();
 
 	if ( parameters.reads )
 	{
