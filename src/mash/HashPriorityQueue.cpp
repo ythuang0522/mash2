@@ -24,13 +24,46 @@ void HashPriorityQueue::clear()
     }
 }
 
-std::pair<std::size_t, hash_u>  HashPriorityQueue::top() const
+hash_u HashPriorityQueue::top() const
 {
     hash_u hash;
     
     if ( use64 )
     {
-        // hash.hash64 = queue64.top().second;
+        hash.hash64 = queue64.top();
+        return hash;
+    }
+    else
+    {
+        hash.hash32 = queue32.top();
+        return hash;
+    }    
+}
+
+void HashPriorityPairQueue::clear()
+{
+    if ( use64 )
+    {
+        while ( queue64.size() )
+        {
+            queue64.pop();
+        }
+    }
+    else
+    {
+        while ( queue32.size() )
+        {
+            queue32.pop();
+        }
+    }
+}
+
+std::pair<std::size_t, hash_u> HashPriorityPairQueue::top() const
+{
+    hash_u hash;
+    
+    if ( use64 )
+    {
         hash.hash64 = queue64.top().second;
         return std::make_pair(queue64.top().first, hash);
     }

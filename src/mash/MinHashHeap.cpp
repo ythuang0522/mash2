@@ -10,6 +10,7 @@ MinHashHeap::MinHashHeap(bool use64New, uint64_t cardinalityMaximumNew, uint64_t
 	use64(use64New),
 	hashes(use64New),
 	hashesQueue(use64New),
+	hashPairQueue(use64New),
 	hashesPending(use64New),
 	hashesQueuePending(use64New)
 {
@@ -112,93 +113,91 @@ void MinHashHeap::kmerInsertonce(hash_u hash, HashSet & KmerStatsTable)
 	size_t kcount = KmerStatsTable.count(hash);
 	auto kmerpair = std::make_pair(kcount, hash);
 
-	if(hashes.size() < cardinalityMaximum || comparePair(kmerpair, hashesQueue.top(), use64 ))
+	if(hashes.size() < cardinalityMaximum || comparePair(kmerpair, hashPairQueue.top(), use64 ))
 	{
 		hashes.insert(hash, 1);
-		hashesQueue.push(std::make_pair(KmerStatsTable.count(hash), hash));
+		hashPairQueue.push(std::make_pair(KmerStatsTable.count(hash), hash));
 
 		if ( hashes.size() > cardinalityMaximum )
 		{
-			hashes.erase(hashesQueue.top().second);			
-			hashesQueue.pop();
+			hashes.erase(hashPairQueue.top().second);			
+			hashPairQueue.pop();
 		}
 	}
 }
 
 void MinHashHeap::tryInsert(hash_u hash)
 {
-	assert(true);
-
-	// if(hashes.size() < cardinalityMaximum ||hashLessThan(hash, hashesQueue.top(), use64))
-	// {
-	// 	if ( hashes.count(hash) == 0 )
-	// 	{
-	// 		if ( bloomFilter != 0 )
-	// 		{
-    //             		const unsigned char * data = use64 ? (const unsigned char *)&hash.hash64 : (const unsigned char *)&hash.hash32;
-    //         			size_t length = use64 ? 8 : 4;
+	if(hashes.size() < cardinalityMaximum ||hashLessThan(hash, hashesQueue.top(), use64))
+	{
+		if ( hashes.count(hash) == 0 )
+		{
+			if ( bloomFilter != 0 )
+			{
+                		const unsigned char * data = use64 ? (const unsigned char *)&hash.hash64 : (const unsigned char *)&hash.hash32;
+            			size_t length = use64 ? 8 : 4;
             	
-    //             		if ( bloomFilter->contains(data, length) )
-    //             		{
-	// 				hashes.insert(hash, 2);
-	// 				hashesQueue.push(hash);
-	// 				multiplicitySum += 2;
-	//                 		kmersUsed++;
-    //            			}
-    //         			else
-    //         			{
-	//                 		bloomFilter->insert(data, length);
-	//                 		kmersTotal++;
-	//             		}
-	// 		}
-	// 		else if ( multiplicityMinimum == 1 || hashesPending.count(hash) == multiplicityMinimum - 1 )
-	// 		{
-	// 			hashes.insert(hash, multiplicityMinimum);
-	// 			hashesQueue.push(hash);
-	// 			multiplicitySum += multiplicityMinimum;
+                		if ( bloomFilter->contains(data, length) )
+                		{
+					hashes.insert(hash, 2);
+					hashesQueue.push(hash);
+					multiplicitySum += 2;
+	                		kmersUsed++;
+               			}
+            			else
+            			{
+	                		bloomFilter->insert(data, length);
+	                		kmersTotal++;
+	            		}
+			}
+			else if ( multiplicityMinimum == 1 || hashesPending.count(hash) == multiplicityMinimum - 1 )
+			{
+				hashes.insert(hash, multiplicityMinimum);
+				hashesQueue.push(hash);
+				multiplicitySum += multiplicityMinimum;
 				
-	// 			if ( multiplicityMinimum > 1 )
-	// 			{
-	// 				// just remove from set for now; will be removed from
-	// 				// priority queue when it's on top
-	// 				//
-	// 				hashesPending.erase(hash);
-	// 			}
-	// 		}
-	// 		else
-	// 		{
-	// 			if ( hashesPending.count(hash) == 0 )
-	// 			{
-	// 				hashesQueuePending.push(hash);
-	// 			}
+				if ( multiplicityMinimum > 1 )
+				{
+					// just remove from set for now; will be removed from
+					// priority queue when it's on top
+					//
+					hashesPending.erase(hash);
+				}
+			}
+			else
+			{
+				if ( hashesPending.count(hash) == 0 )
+				{
+					hashesQueuePending.push(hash);
+				}
 			
-	// 			hashesPending.insert(hash, 1);
-	// 		}
-	// 	}
-	// 	else
-	// 	{
-	// 		hashes.insert(hash, 1);
-	// 		multiplicitySum++;
-	// 	}
+				hashesPending.insert(hash, 1);
+			}
+		}
+		else
+		{
+			hashes.insert(hash, 1);
+			multiplicitySum++;
+		}
 		
-	// 	if ( hashes.size() > cardinalityMaximum )
-	// 	{
-	// 		multiplicitySum -= hashes.count(hashesQueue.top());
-	// 		hashes.erase(hashesQueue.top());
+		if ( hashes.size() > cardinalityMaximum )
+		{
+			multiplicitySum -= hashes.count(hashesQueue.top());
+			hashes.erase(hashesQueue.top());
 			
-	// 		// loop since there could be zombie hashes (gone from hashesPending)
-	// 		//
-	// 		while ( hashesQueuePending.size() > 0 && hashLessThan(hashesQueue.top(), hashesQueuePending.top(), use64) )
-	// 		{
-	// 			if ( hashesPending.count(hashesQueuePending.top()) )
-	// 			{
-	// 				hashesPending.erase(hashesQueuePending.top());
-	// 			}
+			// loop since there could be zombie hashes (gone from hashesPending)
+			//
+			while ( hashesQueuePending.size() > 0 && hashLessThan(hashesQueue.top(), hashesQueuePending.top(), use64) )
+			{
+				if ( hashesPending.count(hashesQueuePending.top()) )
+				{
+					hashesPending.erase(hashesQueuePending.top());
+				}
 				
-	// 			hashesQueuePending.pop();
-	// 		}
+				hashesQueuePending.pop();
+			}
 			
-	// 		hashesQueue.pop();
-	// 	}
-	// }
+			hashesQueue.pop();
+		}
+	}
 }
