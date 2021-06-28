@@ -762,9 +762,10 @@ void addMinHashes(MinHashHeap & minHashHeap,char * seq, uint64_t length, const S
         bool filter = false;
         
         hash_u hash = getHash(kmer, kmerSize, parameters.seed, parameters.use64);
-	    minHashHeap.kmerInsertonce(hash,*KmerStatsTable);
+	    minHashHeap.kmerInsertonce(hash,*KmerStatsTable , i , kmerSize);
     }
-    
+
+  
     if ( ! noncanonical )
     {
         delete [] seqRev;

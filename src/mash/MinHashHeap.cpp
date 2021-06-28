@@ -108,23 +108,76 @@ bool comparePair(std::pair<size_t, hash_u> p1, std::pair<size_t, hash_u> p2, boo
 	}
 }
 
-void MinHashHeap::kmerInsertonce(hash_u hash, HashSet & KmerStatsTable)
+void MinHashHeap::kmerInsertonce(hash_u hash, HashSet & KmerStatsTable , uint64_t index , int kermize)
 {
 	size_t kcount = KmerStatsTable.count(hash);
 	auto kmerpair = std::make_pair(kcount, hash);
 
+
 	if(hashes.size() < cardinalityMaximum || comparePair(kmerpair, hashPairQueue.top(), use64 ))
 	{
+		int find = -1;
+		for(int i = 0 ; i< kermize ; i++){
+			if(index_record.find(index + i ) != index_record.end()){
+				find = i ;
+				break;
+			}
+		}
+		if(find >= 0){
+			auto find_itr = index_record.find(index);
+			size_t find_kcount = KmerStatsTable.count(find_itr->second);
+			auto find_kmerpair = std::make_pair(find_kcount, find_itr->second);
+			if(comparePair(find_kmerpair, kmerpair, use64 )){
+				bad_index_record.insert(std::make_pair(index , hash));
+				return ;
+			}
+		}
+		for(int i = 0 ; i< kermize ; i++){
+			index_record.insert(std::make_pair(index + i , hash));
+		}
+		
 		hashes.insert(hash, 1);
 		hashPairQueue.push(std::make_pair(KmerStatsTable.count(hash), hash));
 
 		if ( hashes.size() > cardinalityMaximum )
 		{
-			hashes.erase(hashPairQueue.top().second);			
+			hashes.erase(hashPairQueue.top().second);		
 			hashPairQueue.pop();
 		}
 	}
 }
+/*
+void MinHashHeap::bad_kmer_check(hash_u hash, HashSet & KmerStatsTable , uint64_t index , int kermize)
+{
+	size_t kcount = KmerStatsTable.count(hash);
+	auto kmerpair = std::make_pair(kcount, hash);
+
+
+	if(hashes.size() < cardinalityMaximum || comparePair(kmerpair, hashPairQueue.top(), use64 ))
+	{
+		bool find = false;
+		for(int i = 0 ; i< kermize ; i++){
+			if(std::find(index_record.begin() , index_record.end() , index) != index_record.end()){
+				find = true ;
+				break;
+			}
+		}
+		if(find){
+			bad_index_record.push_back(index);
+			return ;
+		}
+		index_record.push_back(index);
+		hashes.insert(hash, 1);
+		hashPairQueue.push(std::make_pair(KmerStatsTable.count(hash), hash));
+
+		if ( hashes.size() > cardinalityMaximum )
+		{
+			hashes.erase(hashPairQueue.top().second);		
+				
+			hashPairQueue.pop();
+		}
+	}
+}*/
 
 void MinHashHeap::tryInsert(hash_u hash)
 {
@@ -139,9 +192,9 @@ void MinHashHeap::tryInsert(hash_u hash)
             	
                 		if ( bloomFilter->contains(data, length) )
                 		{
-					hashes.insert(hash, 2);
-					hashesQueue.push(hash);
-					multiplicitySum += 2;
+							hashes.insert(hash, 2);
+							hashesQueue.push(hash);
+							multiplicitySum += 2;
 	                		kmersUsed++;
                			}
             			else

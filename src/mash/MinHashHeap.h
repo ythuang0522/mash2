@@ -5,6 +5,8 @@
 #include "HashPriorityQueue.h"
 #include "HashSet.h"
 #include <math.h>
+#include <algorithm>
+#include <map>
 #include "bloom_filter.hpp"
 
 class MinHashHeap
@@ -20,7 +22,7 @@ public:
 	void toCounts(std::vector<uint32_t> & counts) const;
     void toHashList(HashList & hashList) const;
 	void tryInsert(hash_u hash);
-	void kmerInsertonce(hash_u hash ,HashSet & KmerStatsTable);
+	void kmerInsertonce(hash_u hash, HashSet& KmerStatsTable , uint64_t i , int kmerSize);
 
 private:
 
@@ -42,6 +44,9 @@ private:
     
     uint64_t kmersTotal;
     uint64_t kmersUsed;
+
+	std::map <uint64_t , hash_u> index_record;
+	std::map <uint64_t , hash_u> bad_index_record;
 };
 
 inline double MinHashHeap::estimateMultiplicity() const {return hashes.size() ? (double)multiplicitySum / hashes.size() : 0;}
