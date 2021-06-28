@@ -297,7 +297,7 @@ int CommandScreen::run() const
 		{
 			minHashHeap.tryInsert(hashList.at(i));
 		}
-		
+		minHashHeap.computeStats();
 		delete *i;
 	}
 	

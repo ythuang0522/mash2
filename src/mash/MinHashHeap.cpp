@@ -3,6 +3,7 @@
 #include <iostream>
 #include "HashSet.h"
 #include <assert.h>
+#include <vector>
 
 using namespace::std;
 
@@ -12,7 +13,9 @@ MinHashHeap::MinHashHeap(bool use64New, uint64_t cardinalityMaximumNew, uint64_t
 	hashesQueue(use64New),
 	hashPairQueue(use64New),
 	hashesPending(use64New),
-	hashesQueuePending(use64New)
+	hashesQueuePending(use64New),
+	posi(use64New),
+	value(use64New)
 {
 	cardinalityMaximum = cardinalityMaximumNew;
 	multiplicityMinimum = multiplicityMinimumNew;
@@ -113,17 +116,88 @@ void MinHashHeap::kmerInsertonce(hash_u hash, HashSet & KmerStatsTable)
 	size_t kcount = KmerStatsTable.count(hash);
 	auto kmerpair = std::make_pair(kcount, hash);
 
+	//cout<<hash.hash64<<endl;
+	
 	if(hashes.size() < cardinalityMaximum || comparePair(kmerpair, hashPairQueue.top(), use64 ))
 	{
+		int tmp = hashes.size();
 		hashes.insert(hash, 1);
-		hashPairQueue.push(std::make_pair(KmerStatsTable.count(hash), hash));
+		if(hashes.size() != tmp){
+			if(posi.size()==0){
+				posi.push_back(1);
+				posi.push_back(1);
+			}else{
+				posi[posi.size()-1]+=1;
+				posi.push_back(1);
+				posi[posi.size()-1] = posi[posi.size()-2];
+			}
+			value.push_back(hash.hash64);
+		}else{
+			posi[posi.size()-1] += 1;
+		}
 
+		hashPairQueue.push(std::make_pair(KmerStatsTable.count(hash), hash));
+		//cout <<hashPairQueue.top().first<< endl;
 		if ( hashes.size() > cardinalityMaximum )
 		{
-			hashes.erase(hashPairQueue.top().second);			
+
+			//cout<<"hash size:"<<hashes.size()<<" sketch size:"<<cardinalityMaximum<<endl;
+			vector<hash64_t>::iterator itt; 
+			itt = value.begin();
+			for(int i = 0; i < posi.size()-1;i++)
+			{
+				//cout << posi[i] <<endl;
+				//cout << *itt <<endl;
+				itt++;
+			}
+
+			//record when hash set in top
+			vector<hash64_t>::iterator it; 
+			int tt = 0;
+			for(it = value.begin();it != value.end();it++){
+				if(*it == hashPairQueue.top().second.hash64){
+					//cout<<"hashPairQueue.top(): "<<hashPairQueue.top().second.hash64<<endl<<endl;
+					value.erase(value.begin()+tt+1);
+					posi.erase(posi.begin()+tt);
+					break;
+				}
+				tt++;	
+			}
+			//cout<<hashPairQueue.top().second.hash64<<endl;
+			hashes.erase(hashPairQueue.top().second);
+
+
+
+			//cout<<hashes.size()<<endl;
+			itt = value.begin();
+			for(int i = 0; i < posi.size()-1;i++)
+			{
+				//cout << posi[i] <<endl;
+				//cout << *itt<<endl;
+				itt++;
+			}
+
+
+
 			hashPairQueue.pop();
 		}
 	}
+	
+}
+void MinHashHeap::pos_recall()
+{
+	//print the position of min-hash 
+	vector<hash64_t>::iterator it; 
+	it = value.begin();
+	for(int i = 0; i < posi.size()-1;i++)
+	{
+		cout <<"min hash "<<i<<" position:" <<posi[i] <<" value:" <<*it <<endl;
+	
+		it++;
+	}
+
+	//cout << posi.size()-1<<endl;
+	//cout<<value.size();
 }
 
 void MinHashHeap::tryInsert(hash_u hash)

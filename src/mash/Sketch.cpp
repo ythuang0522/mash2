@@ -111,6 +111,7 @@ void kmerStatistics(HashSet & KmerStatsTable, list<kseq_t *> kseqs, const Sketch
 	while (seqlen > 0 )
 	{
 		addHashes(KmerStatsTable, (*it)->seq.s, seqlen, parameters);
+
 		seqlen = kseq_read(*it);
 		//kseq_rewind(*it);
 	}//end of while
@@ -153,6 +154,9 @@ int Sketch::initForMakeSketch(const vector<string> & files, const Parameters & p
     // add hash directly
 	HashSet *KmerCountTable = new HashSet(parameters.use64);
 	kmerStatistics(*KmerCountTable, kseqs, parameters);
+
+    
+
 
     // print kmer count
     // std::vector<uint32_t> counttable;
@@ -476,7 +480,7 @@ bool Sketch::sketchFileBySequence(FILE * file, ThreadPool<Sketch::SketchInput, S
     int l;
     int count = 0;
 	bool skipped = false;
-	
+
 	while ((l = kseq_read(seq)) >= 0)
 	{
 		if ( l < parameters.kmerSize )
@@ -682,6 +686,7 @@ void addHashes(HashSet & kstatstable,char * seq, uint64_t length, const Sketch::
 	    const char *kmer_fwd = seq + i;
         const char *kmer_rev = seqRev + length - i - kmerSize;
         const char * kmer = (noncanonical || memcmp(kmer_fwd, kmer_rev, kmerSize) <= 0) ? kmer_fwd : kmer_rev;
+        
         bool filter = false;
 
         hash_u hash = getHash(kmer, kmerSize, parameters.seed, parameters.use64);
@@ -760,10 +765,13 @@ void addMinHashes(MinHashHeap & minHashHeap,char * seq, uint64_t length, const S
         const char *kmer_rev = seqRev + length - i - kmerSize;
         const char * kmer = (noncanonical || memcmp(kmer_fwd, kmer_rev, kmerSize) <= 0) ? kmer_fwd : kmer_rev;
         bool filter = false;
-        
         hash_u hash = getHash(kmer, kmerSize, parameters.seed, parameters.use64);
 	    minHashHeap.kmerInsertonce(hash,*KmerStatsTable);
     }
+
+    minHashHeap.pos_recall();
+
+
     
     if ( ! noncanonical )
     {
@@ -805,7 +813,7 @@ void getMinHashPositions(vector<Sketch::PositionHash> & positionHashes, char * s
     
     // All potential min-hash loci in the current window organized by their
     // hashes so repeats can be grouped and so the sorted keys can be used to
-    // keep track of the current h bottom hashes. A deque is used here (rather
+    // keep track of the current h bottom hashes. A 1 is used here (rather
     // than a standard queue) for each list of candidate loci for the sake of
     // debug output; the performance difference seems to be negligible.
     //
@@ -1409,6 +1417,7 @@ Sketch::SketchOutput * sketchFile(Sketch::SketchInput * input)
 			reference.length += l;
 		}
         addMinHashes(minHashHeap, kseqs.front()->seq.s, l, parameters);
+        
         count++;
     }
     
@@ -1424,6 +1433,10 @@ Sketch::SketchOutput * sketchFile(Sketch::SketchInput * input)
     */
     
     //minHashHeap.computeStats();
+    
+
+
+
 
 	if ( parameters.reads )
 	{
@@ -1508,7 +1521,7 @@ Sketch::SketchOutput * sketchSequence(Sketch::SketchInput * input)
 	reference.name = input->name;
 	reference.comment = input->comment;
 	reference.hashesSorted.setUse64(parameters.use64);
-	
+    
 	if ( parameters.windowed )
 	{
 		output->positionHashesByReference.resize(1);
@@ -1518,7 +1531,7 @@ Sketch::SketchOutput * sketchSequence(Sketch::SketchInput * input)
 	{
 	    MinHashHeap minHashHeap(parameters.use64, parameters.minHashesPerWindow, parameters.reads ? parameters.minCov : 1);
         //HashSet KmerStatsTable(parameters.use64);
-	    //addMinHashes(minHashHeap, input->seq, input->length, parameters);
+	    addMinHashes(minHashHeap, input->seq, input->length, parameters);
 	    setMinHashesForReference(reference, minHashHeap);
 	}
 	

@@ -6,6 +6,7 @@
 #include "HashSet.h"
 #include <math.h>
 #include "bloom_filter.hpp"
+#include <vector>
 
 class MinHashHeap
 {
@@ -21,7 +22,8 @@ public:
     void toHashList(HashList & hashList) const;
 	void tryInsert(hash_u hash);
 	void kmerInsertonce(hash_u hash ,HashSet & KmerStatsTable);
-
+	void pos_recall();
+	
 private:
 
 	bool use64;
@@ -42,6 +44,9 @@ private:
     
     uint64_t kmersTotal;
     uint64_t kmersUsed;
+
+	std::vector<int> posi;
+	std::vector<hash64_t> value;
 };
 
 inline double MinHashHeap::estimateMultiplicity() const {return hashes.size() ? (double)multiplicitySum / hashes.size() : 0;}
